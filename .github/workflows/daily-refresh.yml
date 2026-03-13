@@ -1,0 +1,57 @@
+name: Daily EGX Refresh
+
+on:
+  schedule:
+    # Run twice in UTC to handle Cairo DST (+2/+3), then gate to 15:00 Cairo in a step.
+    - cron: "5 12 * * *"
+    - cron: "5 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check Cairo 3 PM window
+        id: cairo_time
+        run: |
+          python - << 'PY'
+          import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          now = datetime.now(ZoneInfo("Africa/Cairo"))
+          should_run = now.hour == 15
+          output_path = os.environ["GITHUB_OUTPUT"]
+          with open(output_path, "a", encoding="utf-8") as f:
+              f.write(f"should_run={str(should_run).lower()}\n")
+              f.write(f"cairo_now={now.isoformat()}\n")
+          print(f"Cairo time: {now.isoformat()}")
+          print(f"should_run={should_run}")
+          PY
+
+      - name: Run daily fetch
+        if: github.event_name == 'workflow_dispatch' || steps.cairo_time.outputs.should_run == 'true'
+        run: python daily_fetch.py
+
+      - name: Commit updated CSV
+        if: github.event_name == 'workflow_dispatch' || steps.cairo_time.outputs.should_run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add EGX_latest_close_52week.csv
+          git diff --cached --quiet || git commit -m "chore: daily EGX data refresh"
+          git push
