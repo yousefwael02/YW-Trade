@@ -1,0 +1,5 @@
+pandas
+yfinance
+openpyxl
+streamlit
+git+https://github.com/baselsm/tvdatafeed.git
