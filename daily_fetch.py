@@ -1,4 +1,4 @@
-from egx_stocks import DEFAULT_CSV_PATH, fetch_all_data, safe_save_csv
+from backend.egx_stocks import DEFAULT_CSV_PATH, fetch_all_data, safe_save_csv
 
 
 def main() -> int:

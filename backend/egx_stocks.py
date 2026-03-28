@@ -1,5 +1,4 @@
 import pandas as pd
-import streamlit as st
 import yfinance as yf
 import logging
 from datetime import datetime
@@ -11,6 +10,21 @@ from tvDatafeed import Interval, TvDatafeed
 logging.getLogger("tvDatafeed").setLevel(logging.CRITICAL)
 logging.getLogger("tvDatafeed.main").setLevel(logging.CRITICAL)
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
+
+
+BASE_DIR = Path(__file__).resolve().parent
+ROOT_DIR = BASE_DIR.parent
+
+
+def resolve_data_path(filename: str) -> Path:
+    backend_path = BASE_DIR / filename
+    root_path = ROOT_DIR / filename
+
+    if backend_path.exists():
+        return backend_path
+    if root_path.exists():
+        return root_path
+    return backend_path
 
 
 SLOW_OR_MISSING_YAHOO_SYMBOLS = {
@@ -31,8 +45,8 @@ SLOW_OR_MISSING_YAHOO_SYMBOLS = {
     "VLMRA",
 }
 SLOW_OR_MISSING_TV_SYMBOLS = {"AIHC"}
-DEFAULT_CSV_PATH = Path("EGX_latest_close_52week.csv")
-SYMBOLS_EXCEL_PATH = Path("EGX100.xlsx")
+DEFAULT_CSV_PATH = resolve_data_path("EGX_latest_close_52week.csv")
+SYMBOLS_EXCEL_PATH = resolve_data_path("EGX100.xlsx")
 SYMBOLS_EXCEL_SHEET = "EGX100"
 YAHOO_SUFFIX = ".CA"
 TV_RETRIES = 1
@@ -399,15 +413,22 @@ def fetch_all_data(progress_bar=None, status_text=None) -> pd.DataFrame:
 
 
 def main() -> None:
+    try:
+        import streamlit as st
+    except ImportError:
+        raise SystemExit("Streamlit is not installed. Run: pip install streamlit")
+
     st.set_page_config(page_title="EGX Stocks Dashboard", page_icon="📈", layout="wide")
     st.title("EGX Stocks Dashboard")
     st.caption(
         "Live EGX dashboard with daily refreshed data for all symbols from the Excel sheet."
     )
 
-    with st.sidebar:
-        st.header("Search")
+    controls_col, button_col = st.columns([4, 1])
+    with controls_col:
         search_query = st.text_input("Search company or symbol", value="")
+    with button_col:
+        st.write("")
         fetch_clicked = st.button("Refresh Data Now", type="primary", use_container_width=True)
 
     try:
