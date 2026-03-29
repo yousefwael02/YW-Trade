@@ -1,6 +1,6 @@
 pandas
 yfinance
 openpyxl
-streamlit
+streamlit>=1.30
 altair<5
 git+https://github.com/baselsm/tvdatafeed.git
